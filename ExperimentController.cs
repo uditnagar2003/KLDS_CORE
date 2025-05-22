@@ -169,14 +169,14 @@ namespace VisualKeyloggerDetector.Core
                 OnStatusUpdated("Step 4/6: Starting concurrent monitoring and injection...");
 
                 // Setup tasks
-                Task<MonitoringResult> monitoringTask = _monitor.MonitorProcessesAsync(candidatePids, token);
-                Task injectionTask = _injector.InjectStreamAsync(schedule, candidatePids, _config,token);
+               // Task<MonitoringResult> monitoringTask = _monitor.MonitorProcessesAsync(candidatePids, token);
+                Task<InjectorResult> injectionTask = _injector.InjectStreamAsync(schedule, candidatePids, _config,token);
 
                 // Await both tasks to complete. If one throws (e.g., due to cancellation), WhenAll will rethrow.
-                await Task.WhenAll(monitoringTask, injectionTask);
+              //  await Task.WhenAll(injectionTask);
 
                 OnStatusUpdated("Monitoring and injection completed.");
-                MonitoringResult monitoringResult = await monitoringTask; // Get the result (already awaited by WhenAll)
+                InjectorResult monitoringResult = await injectionTask; // Get the result (already awaited by WhenAll)
                 token.ThrowIfCancellationRequested(); // Check cancellation again after tasks finish
 
                 // --- Step 5: Analyze Results ---
@@ -275,7 +275,7 @@ namespace VisualKeyloggerDetector.Core
         /// <returns>A list of <see cref="DetectionResult"/> for each analyzed process.</returns>
         private List<DetectionResult> AnalyzeMonitoringResults(
             AbstractKeystrokePattern inputPattern,
-            MonitoringResult monitoringResult,
+            InjectorResult monitoringResult,
             List<ProcessInfoData> candidateProcessInfo)
         {
             var detectionResults = new List<DetectionResult>();

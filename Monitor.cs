@@ -58,7 +58,7 @@ namespace VisualKeyloggerDetector.Core.Monitoring
            // OnStatusUpdate($"Starting monitoring for {processIdList.Count} process(es)...");
             results = new MonitoringResult();
             // Stores the last known WriteTransferCount for each process
-            lastWriteCounts = new MonitoringResult;
+            lastWriteCounts = new MonitoringResult();
            
 
         }
@@ -73,11 +73,11 @@ namespace VisualKeyloggerDetector.Core.Monitoring
         /// <exception cref="OperationCanceledException">Thrown if the operation is cancelled via the <paramref name="cancellationToken"/>.</exception>
         public async Task<MonitoringResult> MonitorProcessesAsync(IEnumerable<uint> processIdsToMonitor, CancellationToken cancellationToken = default)
         {
-            var processIdList = processIdsToMonitor?.ToList() ?? new List<uint>();
+           var processIdList = processIdsToMonitor?.ToList() ?? new List<uint>();
             if (!processIdList.Any())
             {
                 OnStatusUpdate("No processes specified for monitoring.");
-                return new MonitoringResult();
+                //return new MonitoringResult();
             }
 
           /*  OnStatusUpdate($"Starting monitoring for {processIdList.Count} process(es)...");
@@ -86,23 +86,23 @@ namespace VisualKeyloggerDetector.Core.Monitoring
             var lastWriteCounts = new Dictionary<uint, ulong>();
           */  // Use HashSet for efficient checking if a PID is being monitored
             var processSet = new HashSet<uint>(processIdList);
-          
+          /*
             // Initialize results structure for expected processes
             foreach (uint pid in processSet)
             {
                 results[pid] = new List<ulong>(_config.PatternLengthN);
-            }
+            }*/
 
             var stopwatch = new Stopwatch();
-            int intervalDuration = _config.IntervalDurationT;
+          /*  int intervalDuration = _config.IntervalDurationT;
             if (intervalDuration <= 0)
             {
                 OnStatusUpdate("Warning: Interval duration is zero or negative. Monitoring may not function correctly.");
                 intervalDuration = 1; // Use a minimal positive duration to avoid issues
             }
+          */
 
-
-            // --- Initial Read (Baseline) ---
+         /*   // --- Initial Read (Baseline) ---
             OnStatusUpdate("Establishing baseline process write counts...");
             try
             {
@@ -125,11 +125,11 @@ namespace VisualKeyloggerDetector.Core.Monitoring
                 OnStatusUpdate($"Error getting initial process info: {ex.Message}. Proceeding without baseline for some processes.");
                 // Continue, but processes found later will have an assumed baseline of 0 for the first interval diff.
             }
-
+         */
 
             // --- Interval Monitoring Loop ---
             OnStatusUpdate("Starting interval monitoring...");
-            for (int i = 0; i < _config.PatternLengthN; i++)
+            //for (int i = 0; i < _config.PatternLengthN; i++)
             {
                 // Check for cancellation at the start of each interval
                 cancellationToken.ThrowIfCancellationRequested();
@@ -137,7 +137,7 @@ namespace VisualKeyloggerDetector.Core.Monitoring
                 stopwatch.Restart();
 
                 // Wait for the interval duration. We query *after* the interval.
-                await Task.Delay(intervalDuration, cancellationToken);
+               // await Task.Delay(intervalDuration, cancellationToken);
 
                 // --- Query Process Info Again ---
                 Dictionary<uint, ulong> currentWriteCounts = new Dictionary<uint, ulong>();
@@ -155,7 +155,7 @@ namespace VisualKeyloggerDetector.Core.Monitoring
                 }
                 catch (Exception ex)
                 {
-                    OnStatusUpdate($"Warning: Error querying processes in interval {i + 1}: {ex.Message}. Results for this interval may be incomplete.");
+                    //OnStatusUpdate($"Warning: Error querying processes in interval {i + 1}: {ex.Message}. Results for this interval may be incomplete.");
                     // Continue with potentially empty currentWriteCounts
                 }
 
@@ -177,6 +177,7 @@ namespace VisualKeyloggerDetector.Core.Monitoring
                             if (currentCount >= lastCount)
                             {
                                 bytesWrittenThisInterval = currentCount - lastCount;
+                                results[pid]=bytesWrittenThisInterval;
                             }
                             // else: Process might have restarted, or counter wrapped. Treat as 0 write for this interval.
                         }
@@ -187,7 +188,7 @@ namespace VisualKeyloggerDetector.Core.Monitoring
                             // bytesWrittenThisInterval = currentCount; // Alternative: use full count if no baseline
                         }
                         // Update last count for the next interval
-                        lastWriteCounts[pid] = currentCount;
+                       // lastWriteCounts[pid] = currentCount;
                     }
                     else
                     {
@@ -197,26 +198,26 @@ namespace VisualKeyloggerDetector.Core.Monitoring
 
                     // Add result for this interval (even if 0 or process disappeared)
                     // Ensure the list exists before adding
-                    if (!results.ContainsKey(pid))
+                  /*  if (!results.ContainsKey(pid))
                         results[pid] = new List<ulong>(_config.PatternLengthN); // Should not happen if initialized correctly, but safety check
-
+                   
                     // Only add if the list isn't already full (e.g., due to errors)
                     if (results[pid].Count < _config.PatternLengthN)
                     {
                         results[pid].Add(bytesWrittenThisInterval);
                         Console.WriteLine($"PID {pid}: Interval {i + 1} - Bytes Written: {bytesWrittenThisInterval} {DateTime.Now.ToString("HH:mm:ss.fff")}");
-                    }
+                    }*/
                 } // End foreach pid
 
-                OnStatusUpdate($"Interval {i + 1}/{_config.PatternLengthN}: Data collected.");
+               // OnStatusUpdate($"Interval {i + 1}/{_config.PatternLengthN}: Data collected.");
                 stopwatch.Stop(); // Optional: Log if interval took longer than expected due to WMI query time
 
-                OnProgressUpdate(i); // Report progress after completing interval i
+                //OnProgressUpdate(i); // Report progress after completing interval i
 
             } // End interval loop (i)
 
             // Ensure all result lists have the correct length, padding with 0 if necessary (e.g., if process disappeared)
-            foreach (var pid in processSet)
+           /* foreach (var pid in processSet)
             {
                 if (results.TryGetValue(pid, out var list))
                 {
@@ -226,7 +227,7 @@ namespace VisualKeyloggerDetector.Core.Monitoring
                     }
                 }
             }
-
+           */
 
             OnStatusUpdate("Monitoring finished.");
             return results;
