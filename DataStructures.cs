@@ -53,25 +53,25 @@ namespace VisualKeyloggerDetector.Core
         /// <summary>
         /// Gets or sets the number of samples (time intervals) in the pattern (N).
         /// </summary>
-        public int PatternLengthN { get; set; } = 10;
+        public int PatternLengthN { get; set; } = 30;
 
         /// <summary>
         /// Gets or sets the duration of each time interval in milliseconds (T).
         /// </summary>
-        public int IntervalDurationT { get; set; } = 100;
+        public int IntervalDurationT { get; set; } = 10;
 
         public int T { get; set; } = 1000;
         /// <summary>
         /// Gets or sets the minimum number of keystrokes expected/generated within one interval (T).
         /// Used for normalization/denormalization (Kmin).
         /// </summary>
-        public int MinKeysPerIntervalKmin { get; set; } = 5;
+        public int MinKeysPerIntervalKmin { get; set; } = 50;
 
         /// <summary>
         /// Gets or sets the maximum number of keystrokes expected/generated within one interval (T).
         /// Used for normalization/denormalization (Kmax). Must be greater than Kmin.
         /// </summary>
-        public int MaxKeysPerIntervalKmax { get; set; } = 10;
+        public int MaxKeysPerIntervalKmax { get; set; } = 1000;
 
         /// <summary>
         /// Gets or sets the correlation threshold (PCC value) for detection.

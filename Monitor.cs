@@ -155,7 +155,7 @@ namespace VisualKeyloggerDetector.Core.Monitoring
                 }
                 catch (Exception ex)
                 {
-                    //OnStatusUpdate($"Warning: Error querying processes in interval {i + 1}: {ex.Message}. Results for this interval may be incomplete.");
+                    OnStatusUpdate($"Warning: Error querying processes in interval { 1}: {ex.Message}. Results for this interval may be incomplete.");
                     // Continue with potentially empty currentWriteCounts
                 }
 

@@ -80,7 +80,7 @@ namespace VisualKeyloggerDetector.Core.Injection
             try
             {
                 // Uses the static helper class ProcessMonitor (defined elsewhere)
-                var initialProcessInfo = await ProcessMonitor.GetAllProcessesInfoAsync();
+             /*   var initialProcessInfo = await ProcessMonitor.GetAllProcessesInfoAsync();
                 foreach (var pInfo in initialProcessInfo)
                 {
                     if (processSet.Contains(pInfo.Id))
@@ -90,7 +90,8 @@ namespace VisualKeyloggerDetector.Core.Injection
                         if (!results.ContainsKey(pInfo.Id))
                             results[pInfo.Id] = new List<ulong>(_config.PatternLengthN);
                     }
-                }
+                  
+                }*/
                 OnStatusUpdate($"Baseline established for {objectsToMonitor.lastWriteCounts.Count} of {processSet.Count} target processes.");
             }
             catch (Exception ex)
@@ -123,9 +124,12 @@ namespace VisualKeyloggerDetector.Core.Injection
                         if (processSet.Contains(pInfo.Id))
                         {
                             objectsToMonitor.lastWriteCounts[pInfo.Id] = pInfo.WriteCount;
+                            if (!results.ContainsKey(pInfo.Id))
+                                results[pInfo.Id] = new List<ulong>(_config.PatternLengthN);
                         }
                         else
                         {
+                            Console.WriteLine(pInfo.Name + " " + pInfo.Id+"New proces added");
                             processSet.Add(pInfo.Id);
                             processIdList.Add(pInfo.Id);
                             results[pInfo.Id] = new List<ulong>(_config.PatternLengthN);
@@ -182,7 +186,7 @@ namespace VisualKeyloggerDetector.Core.Injection
                     if (results[pid].Count < _config.PatternLengthN)
                     {
                         results[pid].Add(monitoringResult[pid]);
-                       // Console.WriteLine($"PID {pid}: Interval {i + 1} - Bytes Written: {monitoringResult[pid]} {DateTime.Now.ToString("HH:mm:ss.fff")}");
+                       Console.WriteLine($"PID {pid}: Interval {i + 1} - Bytes Written: {monitoringResult[pid]} {DateTime.Now.ToString("HH:mm:ss.fff")}");
                     }
                 }
 
