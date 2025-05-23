@@ -29,13 +29,13 @@ namespace VisualKeyloggerDetector.Core
             if (samples == null)
                 throw new ArgumentNullException(nameof(samples));
             // Basic validation: ensure samples are within [0, 1] using a small tolerance for floating point
-            const double epsilon = 1e-9;
+           /* const double epsilon = 1e-9;
             if (samples.Any(s => s < (0.0 - epsilon) || s > (1.0 + epsilon)))
             {
                 // Find the offending sample for a better error message
                 double offendingSample = samples.First(s => s < (0.0 - epsilon) || s > (1.0 + epsilon));
                 throw new ArgumentException($"Samples must be between 0.0 and 1.0. Found: {offendingSample}", nameof(samples));
-            }
+            }*/
             Samples = new List<double>(samples); // Create a defensive copy
         }
 

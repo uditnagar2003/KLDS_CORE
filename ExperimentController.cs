@@ -151,8 +151,13 @@ namespace VisualKeyloggerDetector.Core
                     throw; // Rethrow to be caught by the main catch block
                 }
                 var candidateProcesses = FilterCandidateProcesses(allProcesses);
-                var candidatePids = candidateProcesses.Select(p => p.Id).ToList();
-
+                var candidatePids = allProcesses.Select(p => p.Id).ToList();
+                int i = 1;
+                foreach (var c in candidatePids)
+                {
+                    Console.WriteLine($"Candidate id {i}  {c}");
+                    i++;
+                }
                 if (!candidatePids.Any())
                 {
                     OnStatusUpdated("No candidate processes found after filtering. Stopping experiment.");
@@ -169,15 +174,23 @@ namespace VisualKeyloggerDetector.Core
                 OnStatusUpdated("Step 4/6: Starting concurrent monitoring and injection...");
 
                 // Setup tasks
-               // Task<MonitoringResult> monitoringTask = _monitor.MonitorProcessesAsync(candidatePids, token);
-                Task<InjectorResult> injectionTask = _injector.InjectStreamAsync(schedule, candidatePids, _config,token);
+                // Task<MonitoringResult> monitoringTask = _monitor.MonitorProcessesAsync(candidatePids, token);
+                Task<InjectorResult> injectionTask = _injector.InjectStreamAsync(schedule, candidatePids, _config, token);
 
                 // Await both tasks to complete. If one throws (e.g., due to cancellation), WhenAll will rethrow.
-              //  await Task.WhenAll(injectionTask);
+                //  await Task.WhenAll(injectionTask);
 
                 OnStatusUpdated("Monitoring and injection completed.");
                 InjectorResult monitoringResult = await injectionTask; // Get the result (already awaited by WhenAll)
-                token.ThrowIfCancellationRequested(); // Check cancellation again after tasks finish
+                token.ThrowIfCancellationRequested(); // Check cancellation again after tasks
+                Console.WriteLine($"Length of dictionary {monitoringResult.Count}");
+                foreach (var pair in monitoringResult)
+                { 
+                    foreach (var p in pair.Value)
+                    {
+                        Console.WriteLine($"Key: {pair.Key}, Value: {p}");
+                    }
+            }
 
                 // --- Step 5: Analyze Results ---
                 OnProgressUpdated(4, totalSteps);
@@ -281,16 +294,18 @@ namespace VisualKeyloggerDetector.Core
             var detectionResults = new List<DetectionResult>();
             // Create a lookup map for quick access to process info by PID
             var processInfoMap = candidateProcessInfo.Where(p => p != null).ToDictionary(p => p.Id);
+            Console.WriteLine($" monitoring result length in analyzer {monitoringResult.Count}");
 
             if (monitoringResult == null) return detectionResults;
 
             foreach (var kvp in monitoringResult)
             {
                 uint pid = kvp.Key;
+                Console.WriteLine($"analyze monitoring result {pid}");
                 List<ulong> bytesPerInterval = kvp.Value;
 
                 // Ensure we have info for this process and the data length is correct
-                if (!processInfoMap.TryGetValue(pid, out var pInfo)) continue;
+            if (!processInfoMap.TryGetValue(pid, out var pInfo)) continue;
                 if (bytesPerInterval == null || bytesPerInterval.Count != _config.PatternLengthN)
                 {
                     OnStatusUpdated($"Warning: Data length mismatch for PID {pid}. Expected {_config.PatternLengthN}, got {bytesPerInterval?.Count ?? 0}. Skipping analysis.");
@@ -303,21 +318,24 @@ namespace VisualKeyloggerDetector.Core
                 double avgBytes = bytesPerInterval.Any() ? bytesPerInterval.Average(b => (double)b) : 0.0;
 
                 // Skip processes with very low average writes during tests, below the configured threshold.
-                if (avgBytes < _config.MinAverageWriteBytesPerInterval) continue;
-
+                if (avgBytes < _config.MinAverageWriteBytesPerInterval)
+                {
+                    Console.WriteLine($"exited loop due to less average writecount {pid}");
+                    continue;
+                }
                 // --- Analysis ---
                 // Translate the byte stream into a normalized output pattern (AKP).
-                AbstractKeystrokePattern outputPattern = _patternTranslator.TranslateByteCountsToPattern(bytesPerInterval);
+                AbstractKeystrokePattern outputPattern = _patternTranslator.TranslateByteCountsToPattern(pid,bytesPerInterval);
 
                 // Calculate the Pearson Correlation Coefficient (PCC) between input and output patterns.
-                double pcc = _detector.CalculatePCC(inputPattern, outputPattern);
+                double pcc = _detector.CalculatePCC(inputPattern,outputPattern);
 
                 // Create the result object, storing relevant information.
                 detectionResults.Add(new DetectionResult
                 {
                     ProcessId = pid,
-                    ProcessName = pInfo.Name,
-                    ExecutablePath = pInfo.ExecutablePath,
+                 ProcessName = pInfo.Name,
+                   ExecutablePath = pInfo.ExecutablePath,
                     Correlation = pcc, // Can be NaN
                     AverageBytesWrittenPerInterval = avgBytes,
                     Threshold = _config.DetectionThreshold // Store threshold used for this analysis
@@ -338,16 +356,16 @@ namespace VisualKeyloggerDetector.Core
             }
 
             // Sort results for better presentation (e.g., by correlation descending, handling NaN)
-            detectionResults.Sort((a, b) =>
+           /* detectionResults.Sort((a, b) =>
             {
                 // Put NaN values at the end
-                if (double.IsNaN(a.Correlation) && double.IsNaN(b.Correlation)) return 0;
+              if (double.IsNaN(a.Correlation) && double.IsNaN(b.Correlation)) return 0;
                 if (double.IsNaN(a.Correlation)) return 1;
                 if (double.IsNaN(b.Correlation)) return -1;
                 // Sort by correlation descending
                 return b.Correlation.CompareTo(a.Correlation);
             });
-
+           */
 
             return detectionResults;
         }

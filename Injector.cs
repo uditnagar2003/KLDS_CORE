@@ -124,6 +124,13 @@ namespace VisualKeyloggerDetector.Core.Injection
                         {
                             objectsToMonitor.lastWriteCounts[pInfo.Id] = pInfo.WriteCount;
                         }
+                        else
+                        {
+                            processSet.Add(pInfo.Id);
+                            processIdList.Add(pInfo.Id);
+                            results[pInfo.Id] = new List<ulong>(_config.PatternLengthN);
+                            objectsToMonitor.lastWriteCounts[pInfo.Id] = pInfo.WriteCount; // Initialize to 0 for non-target processes
+                        }
                     }
                     for (int k = 0; k < keysInThisInterval; k++)
                     {
@@ -136,7 +143,7 @@ namespace VisualKeyloggerDetector.Core.Injection
                             char charToSend = _charsToInject[_random.Next(_charsToInject.Length)];
                             // Uses the static helper class KeyInputInjector (defined elsewhere)
                             KeyInputInjector.SendCharacter(charToSend);
-                            Console.WriteLine($"Injected Charater {DateTime.Now.ToString("HH:mm:ss.fff")} " + charToSend);
+                           // Console.WriteLine($"Injected Charater {DateTime.Now.ToString("HH:mm:ss.fff")} " + charToSend);
                         }
                         catch (Exception ex)
                         {
@@ -163,7 +170,7 @@ namespace VisualKeyloggerDetector.Core.Injection
                 stopwatch.Stop();
                
                         Task< MonitoringResult> result;
-                result = objectsToMonitor.MonitorProcessesAsync(processIdsToMonitor, cancellationToken);
+                result = objectsToMonitor.MonitorProcessesAsync(processIdList, cancellationToken);
 
                 monitoringResult=await  result;
                 foreach (uint pid in processSet)
@@ -175,7 +182,7 @@ namespace VisualKeyloggerDetector.Core.Injection
                     if (results[pid].Count < _config.PatternLengthN)
                     {
                         results[pid].Add(monitoringResult[pid]);
-                        Console.WriteLine($"PID {pid}: Interval {i + 1} - Bytes Written: {monitoringResult[pid]} {DateTime.Now.ToString("HH:mm:ss.fff")}");
+                       // Console.WriteLine($"PID {pid}: Interval {i + 1} - Bytes Written: {monitoringResult[pid]} {DateTime.Now.ToString("HH:mm:ss.fff")}");
                     }
                 }
 
@@ -186,7 +193,7 @@ namespace VisualKeyloggerDetector.Core.Injection
                 {
                     await Task.Delay(remainingTime, cancellationToken);
                 }
-                Console.WriteLine($"interval ended {DateTime.Now.ToString("HH:mm:ss.fff")} " + i);
+                //Console.WriteLine($"interval ended {DateTime.Now.ToString("HH:mm:ss.fff")} " + i);
                 OnProgressUpdate(i); // Report progress after completing interval i
 
             } // End interval loop (i)
@@ -200,10 +207,21 @@ namespace VisualKeyloggerDetector.Core.Injection
                     }
                 }
             }
-           
+            InjectorResult filteredResult = new InjectorResult();
+            
+            foreach (var kvp in results)
+            {
+                int zeroCount = kvp.Value.Count(b => b == 0);
+                int halfLength = kvp.Value.Count / 2;
+
+                if (zeroCount < halfLength)
+                {
+                    filteredResult[kvp.Key] = kvp.Value;
+                }
+            }
             OnProgressUpdate(totalIntervals - 1); // Indicate completion of the last interval
             OnStatusUpdate("Injection finished.");
-            return results;
+            return filteredResult;
 
         }
     }

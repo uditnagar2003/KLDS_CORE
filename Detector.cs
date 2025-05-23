@@ -43,7 +43,7 @@ namespace VisualKeyloggerDetector.Core.Detection
             // Calculate means
             double meanP = 0.0;
             double meanQ = 0.0;
-            for (int i = 0; i < n; ++i)
+            for (int i = 0; i < n; i++)
             {
                 meanP += samplesP[i];
                 meanQ += samplesQ[i];
@@ -83,6 +83,7 @@ namespace VisualKeyloggerDetector.Core.Detection
             // Calculate PCC: cov(P,Q) / (stdDevP * stdDevQ)
             // Note: The sumCoDev is proportional to covariance. The N or N-1 factor cancels out in the PCC formula.
             double correlation = sumCoDev / (stdDevP * stdDevQ);
+            Console.WriteLine($"PCC: {correlation}  stdDevP: {stdDevP}  stdDevQ: {stdDevQ}");
 
             // Clamp result to [-1, 1] due to potential floating point inaccuracies near the boundaries.
             return Math.Max(-1.0, Math.Min(1.0, correlation));

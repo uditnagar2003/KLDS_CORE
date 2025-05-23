@@ -101,7 +101,7 @@ namespace VisualKeyloggerDetector.Core.Translation
         /// <returns>A normalized output <see cref="AbstractKeystrokePattern"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="bytesWrittenPerInterval"/> is null.</exception>
         /// <exception cref="ArgumentException">Thrown if the byte stream length does not match the configured PatternLengthN.</exception>
-        public AbstractKeystrokePattern TranslateByteCountsToPattern(List<ulong> bytesWrittenPerInterval)
+        public AbstractKeystrokePattern TranslateByteCountsToPattern(uint pid,List<ulong> bytesWrittenPerInterval)
         {
             if (bytesWrittenPerInterval == null) throw new ArgumentNullException(nameof(bytesWrittenPerInterval));
             if (bytesWrittenPerInterval.Count != _config.PatternLengthN)
@@ -112,7 +112,7 @@ namespace VisualKeyloggerDetector.Core.Translation
 
             foreach (ulong bytesWritten in bytesWrittenPerInterval)
             {
-                Console.WriteLine("Bytes written" + bytesWritten);
+                Console.WriteLine($"Bytes written for {pid}   " + bytesWritten);
                 double normalizedSample;
                 // Avoid division by zero if Kmax == Kmin (should be prevented by constructor check, but defensive)
                 if (kRange <= 0)
@@ -122,17 +122,19 @@ namespace VisualKeyloggerDetector.Core.Translation
                 }
                 else
                 {
-                    // Normalize: Pi = (Bytes_i - Kmin) / (Kmax - Kmin)
+                    //: Pi = (Bytes_i - Kmin) / (Kmax - Kmin)
                     // Use Kmin/Kmax defined for keys, applying them to bytes.
-                    normalizedSample = ((double)bytesWritten/*_config.T*/ - _config.MinKeysPerIntervalKmin) / kRange;
+                      normalizedSample = ((double)bytesWritten/*_config.T*/ - _config.MinKeysPerIntervalKmin) / kRange;
                 }
 
-                // Clamp the value to [0, 1] as byte counts might exceed Kmax or be below Kmin due to noise or scaling.
-                normalizedSample = Math.Max(0.0, Math.Min(1.0, normalizedSample));
+               /* // Clamp the value to [0, 1] as byte counts might exceed Kmax or be below Kmin due to noise or scaling.
+               normalizedSample = Math.Max(0.0, Math.Min(1.0, normalizedSample));
+                */
+
                 outputSamples.Add(normalizedSample);
             }
             foreach(int ind in outputSamples)
-            Console.WriteLine("akp to normalized" + ind);
+            Console.WriteLine($"akp to normalized for {pid}  " + ind);
             return new AbstractKeystrokePattern(outputSamples);
         }
     }
